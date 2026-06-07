@@ -1,0 +1,12 @@
+.idea
+.vscode
+/target
+Cargo.lock
+.backend*
+.builder*
+/wasm
+.env
+# --- security: never commit keys ---
+keys/
+*.pem
+secret_key*
