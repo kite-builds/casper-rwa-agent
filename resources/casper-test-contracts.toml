@@ -1,0 +1,6 @@
+last_updated = "2026-06-08T14:38:10Z"
+
+[[contracts]]
+name = "RwaVault"
+package_name = "RwaVault"
+package_hash = "hash-82e45926c39c0d42166a8bce66770b2cbcab2448dc61a8b3622acca09f2ea059"
