@@ -39,6 +39,19 @@ The `distribute` call emitted two native CSPR transfers — the 60/40 pro-rata s
 
 Contract state after: `total_distributed = 100,000,000,000 motes`, `rent_pool = 0`.
 
+## Agent-driven settlement cycle (Milestone B)
+
+The autonomous agent (`agent/`) then ran a full observe → pay (x402) → decide → settle
+cycle and fired these on its own (rent signal said 200 CSPR due):
+
+| Step | Entry point | Transaction hash | Explorer |
+|------|-------------|------------------|----------|
+| Deposit 200 CSPR rent | `deposit_rent` | `020b7b3667e8c4a535d9409e38132ee1854f670fe9cfd056fcf501cc909bd4ec` | [link](https://testnet.cspr.live/transaction/020b7b3667e8c4a535d9409e38132ee1854f670fe9cfd056fcf501cc909bd4ec) |
+| **Settlement: distribute** | `distribute` | `7fd096effdecae47e0dc3ddbf3720493973bc75243f02209ffdd04a41626ffcb` | [link](https://testnet.cspr.live/transaction/7fd096effdecae47e0dc3ddbf3720493973bc75243f02209ffdd04a41626ffcb) |
+
+Distribute `7fd0…ffcb` (block 8113832, no error) transferred 120 CSPR + 80 CSPR (60/40).
+Lifetime `total_distributed` after this cycle: **300 CSPR**.
+
 ## How to reproduce
 1. `source ~/.casper-build-env.sh && source ~/.cargo/env`
 2. `cargo odra build` (produces `wasm/RwaVault.wasm`)

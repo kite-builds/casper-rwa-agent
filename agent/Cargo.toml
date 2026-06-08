@@ -1,0 +1,36 @@
+[package]
+name = "casper_rwa_agent_loop"
+version = "0.1.0"
+edition = "2021"
+description = "Autonomous x402 rent-settlement agent for the CasperRWA-Agent RwaVault contract"
+license = "MIT"
+
+# Standalone crate (not part of the contract crate's wasm build) so the async
+# HTTP stack never touches the no_std/wasm32 contract compilation.
+
+[[bin]]
+name = "oracle"
+path = "src/bin/oracle.rs"
+
+[[bin]]
+name = "facilitator"
+path = "src/bin/facilitator.rs"
+
+[[bin]]
+name = "agent"
+path = "src/bin/agent.rs"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+sha2 = "0.10"
+hex = "0.4"
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+uuid = { version = "1", features = ["v4"] }

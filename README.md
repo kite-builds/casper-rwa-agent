@@ -43,9 +43,14 @@ Three components (all original code for this Buildathon):
 
 | # | Component | Stack | Status |
 |---|-----------|-------|--------|
-| 1 | **`RwaVault`** on-chain settlement contract | Rust / Odra → Casper WASM | ✅ built + unit-tested + WASM artifact |
-| 2 | **x402 Rent Oracle** — `GET /rent-signal` behind an HTTP-402 paywall | (off-chain service) | ⏳ next |
-| 3 | **Autonomous agent** — pay → query → settle loop | (off-chain) | ⏳ next |
+| 1 | **`RwaVault`** on-chain settlement contract | Rust / Odra → Casper WASM | ✅ built + 8/8 tests + **deployed to testnet** ([DEPLOYMENT.md](./DEPLOYMENT.md)) |
+| 2 | **x402 Rent Oracle** — `GET /rent-signal` behind an HTTP-402 paywall | Rust / axum (`agent/`) | ✅ runs; HTTP-402 exact scheme |
+| 3 | **Autonomous agent** — pay → query → settle loop | Rust (`agent/`) | ✅ end-to-end, fires real on-chain settlement |
+
+**Live on Casper testnet:** contract package
+`82e45926c39c0d42166a8bce66770b2cbcab2448dc61a8b3622acca09f2ea059`; the agent has driven
+real `distribute` settlement txs (60/40 pro-rata native transfers) — full tx hashes +
+explorer links in [DEPLOYMENT.md](./DEPLOYMENT.md). Run the loop: `cd agent && ./run_loop.sh`.
 
 ## The `RwaVault` contract
 
@@ -77,10 +82,11 @@ deposit, pro-rata distribution, dust retention, revert paths).
 ## Roadmap to submission (2026-06-30)
 
 - [x] `RwaVault` contract + unit tests + WASM build
-- [ ] Deploy `RwaVault` to **Casper testnet** (real `distribute()` tx hash) ← eligibility floor
-- [ ] x402 rent-oracle service (HTTP 402)
-- [ ] Autonomous agent loop (pay → query → settle), end-to-end
-- [ ] Demo video + submission
+- [x] Deploy `RwaVault` to **Casper testnet** (real `distribute()` tx hash) ← eligibility floor
+- [x] x402 rent-oracle service (HTTP 402)
+- [x] Autonomous agent loop (pay → query → settle), end-to-end
+- [ ] Wire facilitator to the production Casper x402 endpoint (sponsored credentials)
+- [ ] Demo video + DoraHacks submission + CSPR.fans votes
 
 ## License
 
