@@ -159,15 +159,21 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or(8402);
     let state = Arc::new(AppState {
         network: std::env::var("X402_NETWORK").unwrap_or_else(|_| "casper-test".into()),
-        // price of one rent signal: 0.1 CSPR = 100_000_000 motes.
-        price_motes: std::env::var("ORACLE_PRICE_MOTES").unwrap_or_else(|_| "100000000".into()),
+        // price of one rent signal: 2.5 CSPR = 2_500_000_000 motes (the chain
+        // minimum for a native transfer, so the micro-payment settles on-chain).
+        price_motes: std::env::var("ORACLE_PRICE_MOTES").unwrap_or_else(|_| "2500000000".into()),
         pay_to: std::env::var("ORACLE_PAY_TO").unwrap_or_else(|_| {
-            // oracle operator account hash (demo).
-            "account-hash-b383c7cc23d18bc1b42406a1b2d29fc8dba86425197b6f553d7fd61375b5e446".into()
+            // oracle operator public key (payment address for the transfer).
+            "01345219a3c91e0e2cce865d0706bc0840b1549a05a0abe160a49726f2b596483d".into()
         }),
         facilitator: std::env::var("FACILITATOR_URL")
             .unwrap_or_else(|_| "http://127.0.0.1:8403".into()),
-        http: reqwest::Client::new(),
+        // Long timeout: /settle blocks while the facilitator broadcasts the
+        // micro-payment and awaits on-chain execution.
+        http: reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(180))
+            .build()
+            .expect("http client"),
     });
 
     let app = Router::new()

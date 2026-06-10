@@ -7,13 +7,17 @@
 //! server asks a facilitator to `verify` then `settle` the payment before
 //! returning `200 OK` plus an `X-PAYMENT-RESPONSE` settlement receipt.
 //!
-//! Scope note: the production Casper x402 Facilitator settles on Casper mainnet
-//! and is gated behind sponsored buildathon credentials we don't hold. This crate
-//! ships a faithful local facilitator (`bin/facilitator`) implementing the same
-//! verify/settle interface so the full observe -> pay -> settle loop runs
-//! end-to-end on the testnet rail; only the facilitator's *settlement* of the
-//! micro-payment is local (documented), while the agent's RWA *settlement* on the
-//! deployed vault is a real Casper testnet transaction.
+//! Scope note: this crate ships its own facilitator (`bin/facilitator`)
+//! implementing the same verify/settle interface as the production Casper x402
+//! Facilitator (which settles on mainnet behind sponsored buildathon
+//! credentials). Per the x402 spec a facilitator is an untrusted convenience
+//! service anyone can run: the payer pre-signs the transfer transaction and
+//! the facilitator merely validates + broadcasts it. Our facilitator settles
+//! the micro-payment ON-CHAIN on Casper testnet (`signed_tx` in
+//! [`PaymentPayload`]) and returns the real transaction hash in the
+//! settlement receipt; the agent's RWA *settlement* on the deployed vault is
+//! likewise a real Casper testnet transaction. Swap `FACILITATOR_URL` to use
+//! the production mainnet facilitator instead.
 
 use serde::{Deserialize, Serialize};
 
@@ -69,6 +73,16 @@ pub struct PaymentPayload {
     pub signature: String,
     /// Payer public key (hex) so the facilitator can verify the signature.
     pub public_key: String,
+    /// Pre-signed Casper TransactionV1 (native transfer) as base64 JSON.
+    ///
+    /// x402 "exact" on Casper: the payer signs the transfer transaction
+    /// itself; the facilitator validates it against the requirements and
+    /// broadcasts it (the Casper analogue of EIP-3009
+    /// `transferWithAuthorization` on EVM x402 rails). When present the
+    /// facilitator settles the micro-payment ON-CHAIN and returns the real
+    /// transaction hash; when absent it falls back to a local receipt.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signed_tx: Option<String>,
 }
 
 impl PaymentPayload {

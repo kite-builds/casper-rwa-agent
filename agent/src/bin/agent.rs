@@ -53,15 +53,68 @@ struct Args {
     /// Path to the contract crate root (where the odra-cli runs).
     #[arg(long, default_value = "..")]
     contract_dir: String,
-    /// Skip the real on-chain settlement (dry run; observe+pay only).
+    /// Path to the agent's secret key (signs the x402 micro-payment transfer).
+    #[arg(long, default_value = "../keys/secret_key.pem")]
+    secret_key: String,
+    /// Skip the real on-chain settlement (dry run; observe+pay only) and
+    /// settle the micro-payment with a local receipt instead of on-chain.
     #[arg(long)]
     dry_run: bool,
+}
+
+/// Pre-sign the micro-payment as a native Casper transfer (x402 "exact"):
+/// the agent signs the transaction, the facilitator broadcasts it. Returns
+/// the signed TransactionV1 JSON, base64-encoded for the X-PAYMENT payload.
+fn sign_transfer_tx(
+    secret_key: &str,
+    target_pubkey: &str,
+    amount_motes: &str,
+    network: &str,
+    nonce: &str,
+) -> anyhow::Result<String> {
+    use base64::Engine;
+    let out = std::env::temp_dir().join(format!("x402_pay_{nonce}.json"));
+    let client = std::env::var("CASPER_CLIENT").unwrap_or_else(|_| "casper-client".into());
+    let status = Command::new(&client)
+        .args([
+            "make-transaction",
+            "transfer",
+            "--secret-key",
+            secret_key,
+            "--target",
+            target_pubkey,
+            "--transfer-amount",
+            amount_motes,
+            "--chain-name",
+            network,
+            "--pricing-mode",
+            "classic",
+            "--payment-amount",
+            "100000000", // native transfer gas: 0.1 CSPR
+            "--gas-price-tolerance",
+            "3",
+            "--standard-payment",
+            "true",
+            "-o",
+        ])
+        .arg(&out)
+        .status()?;
+    if !status.success() {
+        anyhow::bail!("casper-client make-transaction failed (exit {:?})", status.code());
+    }
+    let json = std::fs::read(&out)?;
+    let _ = std::fs::remove_file(&out);
+    Ok(base64::engine::general_purpose::STANDARD.encode(json))
 }
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().with_target(false).init();
     let args = Args::parse();
-    let http = reqwest::blocking::Client::new();
+    // Long timeout: the paid retry blocks while the facilitator broadcasts the
+    // micro-payment and awaits on-chain execution (a couple of blocks).
+    let http = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(180))
+        .build()?;
     let url = format!("{}/rent-signal", args.oracle);
 
     // --- 1. OBSERVE ---
@@ -93,6 +146,25 @@ fn main() -> anyhow::Result<()> {
         &pr.nonce,
     );
     let signature = casper_rwa_agent_loop::sign_auth(&args.public_key, &msg);
+    // Pre-sign the actual on-chain transfer (the facilitator broadcasts it).
+    // Dry runs skip this and settle with a local receipt instead.
+    let signed_tx = if args.dry_run {
+        None
+    } else {
+        let tx = sign_transfer_tx(
+            &args.secret_key,
+            &pr.pay_to,
+            &pr.max_amount_required,
+            &pr.network,
+            &pr.nonce,
+        )?;
+        tracing::info!(
+            "[pay] pre-signed native transfer of {} motes to {} (facilitator will broadcast)",
+            pr.max_amount_required,
+            pr.pay_to
+        );
+        Some(tx)
+    };
     let payload = PaymentPayload {
         x402_version: 1,
         scheme: pr.scheme.clone(),
@@ -103,6 +175,7 @@ fn main() -> anyhow::Result<()> {
         nonce: pr.nonce.clone(),
         signature,
         public_key: args.public_key.clone(),
+        signed_tx,
     };
     tracing::info!("[pay] signed authorization, retrying with {X_PAYMENT}");
     let paid = http
@@ -121,6 +194,12 @@ fn main() -> anyhow::Result<()> {
                     receipt.amount,
                     receipt.network
                 );
+                if !receipt.tx.starts_with("local-") && !receipt.tx.is_empty() {
+                    tracing::info!(
+                        "[pay] micro-payment ON-CHAIN: https://testnet.cspr.live/transaction/{}",
+                        receipt.tx
+                    );
+                }
             }
         }
     }

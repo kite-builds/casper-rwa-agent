@@ -47,10 +47,21 @@ Three components (all original code for this Buildathon):
 | 2 | **x402 Rent Oracle** — `GET /rent-signal` behind an HTTP-402 paywall | Rust / axum (`agent/`) | ✅ runs; HTTP-402 exact scheme |
 | 3 | **Autonomous agent** — pay → query → settle loop | Rust (`agent/`) | ✅ end-to-end, fires real on-chain settlement |
 
-**Live on Casper testnet:** contract package
-`82e45926c39c0d42166a8bce66770b2cbcab2448dc61a8b3622acca09f2ea059`; the agent has driven
-real `distribute` settlement txs (60/40 pro-rata native transfers) — full tx hashes +
-explorer links in [DEPLOYMENT.md](./DEPLOYMENT.md). Run the loop: `cd agent && ./run_loop.sh`.
+**Live on Casper testnet — every leg of the loop is on-chain:** contract package
+`82e45926c39c0d42166a8bce66770b2cbcab2448dc61a8b3622acca09f2ea059`. One autonomous
+cycle (2026-06-10) produced three real casper-test transactions:
+
+| step | tx |
+|------|----|
+| x402 micro-payment for the oracle query (2.5 CSPR) | [`6ae8c1b1…39ae380`](https://testnet.cspr.live/transaction/6ae8c1b1079a593f1f077324cb1b251f4c02c3df446decedaa5770edd39ae380) |
+| `deposit_rent` (200 CSPR) | [`4dde8fc0…4b1968e`](https://testnet.cspr.live/transaction/4dde8fc0793e20bc37f8b284c416d3785a744bed63882580e9e88ca354b1968e) |
+| `distribute` (120 + 80 CSPR pro-rata) | [`5945080a…dae076f`](https://testnet.cspr.live/transaction/5945080aec1c5a3f319f3856a60183262b1c82bc2bed00c9a0af1f19ddae076f) |
+
+The x402 micro-payment uses the spec's payer-signs / facilitator-broadcasts model
+(the Casper analogue of EIP-3009): the agent pre-signs a native transfer, and the
+bundled facilitator validates + broadcasts it and returns the real tx hash as the
+`X-PAYMENT-RESPONSE` receipt. Full tx hashes + explorer links in
+[DEPLOYMENT.md](./DEPLOYMENT.md). Run the loop: `cd agent && ./run_loop.sh`.
 
 ## The `RwaVault` contract
 
@@ -85,8 +96,9 @@ deposit, pro-rata distribution, dust retention, revert paths).
 - [x] Deploy `RwaVault` to **Casper testnet** (real `distribute()` tx hash) ← eligibility floor
 - [x] x402 rent-oracle service (HTTP 402)
 - [x] Autonomous agent loop (pay → query → settle), end-to-end
-- [ ] Wire facilitator to the production Casper x402 endpoint (sponsored credentials)
-- [ ] Demo video + DoraHacks submission + CSPR.fans votes
+- [x] x402 micro-payment settles **on-chain** (payer-signed transfer, facilitator-broadcast)
+- [x] Demo video + DoraHacks submission ([BUIDL #44481](https://dorahacks.io/buidl/44481))
+- [ ] Optional: swap `FACILITATOR_URL` to the production mainnet facilitator (sponsored credentials)
 
 ## License
 

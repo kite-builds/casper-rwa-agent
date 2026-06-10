@@ -52,6 +52,23 @@ cycle and fired these on its own (rent signal said 200 CSPR due):
 Distribute `7fd0…ffcb` (block 8113832, no error) transferred 120 CSPR + 80 CSPR (60/40).
 Lifetime `total_distributed` after this cycle: **300 CSPR**.
 
+## Fully on-chain x402 cycle (2026-06-10)
+
+The facilitator was upgraded to settle the x402 micro-payment **on-chain**: the agent
+pre-signs a native CSPR transfer (payer-signs / facilitator-broadcasts, the Casper
+analogue of EIP-3009), the facilitator validates it against the payment requirements,
+broadcasts via `account_put_transaction`, and returns the real tx hash in the
+`X-PAYMENT-RESPONSE` receipt. One autonomous cycle produced **three** on-chain txs:
+
+| Step | Transaction hash | Explorer |
+|------|------------------|----------|
+| **x402 micro-payment** (2.5 CSPR, agent → oracle, block 8135906) | `6ae8c1b1079a593f1f077324cb1b251f4c02c3df446decedaa5770edd39ae380` | [link](https://testnet.cspr.live/transaction/6ae8c1b1079a593f1f077324cb1b251f4c02c3df446decedaa5770edd39ae380) |
+| Deposit 200 CSPR rent | `4dde8fc0793e20bc37f8b284c416d3785a744bed63882580e9e88ca354b1968e` | [link](https://testnet.cspr.live/transaction/4dde8fc0793e20bc37f8b284c416d3785a744bed63882580e9e88ca354b1968e) |
+| **Settlement: distribute** | `5945080aec1c5a3f319f3856a60183262b1c82bc2bed00c9a0af1f19ddae076f` | [link](https://testnet.cspr.live/transaction/5945080aec1c5a3f319f3856a60183262b1c82bc2bed00c9a0af1f19ddae076f) |
+
+Oracle payee account `account-hash-e2039a5a78f02b0962a327c7d4f7c6e7ffcccc2ab4c131a476c935f4b5ae1273`
+received the 2.5 CSPR query fee on-chain. Lifetime `total_distributed`: **500 CSPR**.
+
 ## How to reproduce
 1. `source ~/.casper-build-env.sh && source ~/.cargo/env`
 2. `cargo odra build` (produces `wasm/RwaVault.wasm`)
