@@ -53,9 +53,11 @@ cycle (2026-06-10) produced three real casper-test transactions:
 
 | step | tx |
 |------|----|
-| x402 micro-payment for the oracle query (2.5 CSPR) | [`6ae8c1b1…39ae380`](https://testnet.cspr.live/transaction/6ae8c1b1079a593f1f077324cb1b251f4c02c3df446decedaa5770edd39ae380) |
-| `deposit_rent` (200 CSPR) | [`4dde8fc0…4b1968e`](https://testnet.cspr.live/transaction/4dde8fc0793e20bc37f8b284c416d3785a744bed63882580e9e88ca354b1968e) |
-| `distribute` (120 + 80 CSPR pro-rata) | [`5945080a…dae076f`](https://testnet.cspr.live/transaction/5945080aec1c5a3f319f3856a60183262b1c82bc2bed00c9a0af1f19ddae076f) |
+| x402 micro-payment for the oracle query (2.5 CSPR) | [`4e2fa6e6…f84ae03`](https://testnet.cspr.live/transaction/4e2fa6e652d23ba2e93bb01ed8e8b97e8ce9d869638e8dac375b29485f84ae03) |
+| `deposit_rent` (200 CSPR) | [`ccebb404…7b9cfb`](https://testnet.cspr.live/transaction/ccebb4049f2799df5eff0f93c92405fa5368899fb74d23bd9038e92b7e7b9cfb) |
+| `distribute` (120 + 80 CSPR pro-rata) | [`5b74241e…1048d3a`](https://testnet.cspr.live/transaction/5b74241ec0920107bb62675a052c2a9d526f4a82f8fc3ecc4735b6e221048d3a) |
+
+(These are the txs from the cycle shown in the [demo video](https://casperrwa-agent-demo.surge.sh/); a prior identical cycle is recorded in [DEPLOYMENT.md](./DEPLOYMENT.md).)
 
 The x402 micro-payment uses the spec's payer-signs / facilitator-broadcasts model
 (the Casper analogue of EIP-3009): the agent pre-signs a native transfer, and the
@@ -90,15 +92,42 @@ cargo odra build      # produce wasm/RwaVault.wasm (the deployable artifact)
 Current test status: **8/8 passing** (init, registration, access control, payable
 deposit, pro-rata distribution, dust retention, revert paths).
 
-## Roadmap to submission (2026-06-30)
+## Why this matters (real-world applicability)
 
-- [x] `RwaVault` contract + unit tests + WASM build
-- [x] Deploy `RwaVault` to **Casper testnet** (real `distribute()` tx hash) ← eligibility floor
-- [x] x402 rent-oracle service (HTTP 402)
-- [x] Autonomous agent loop (pay → query → settle), end-to-end
+Tokenized real-world assets (RWAs) are one of crypto's fastest-growing categories, but
+the **operational layer** — collecting yield and distributing it to fractional owners —
+is still manual and trust-heavy. CasperRWA-Agent demonstrates that an autonomous agent
+can run that operational layer end-to-end: it pays for the data it consumes with x402
+micropayments and settles the resulting pro-rata distribution on-chain, with no human in
+the loop. Rent is the first instance; the same pattern covers dividends, bond coupons,
+and royalty splits.
+
+**Why Casper specifically:** it is a WebAssembly-native L1 with a **live x402 facilitator**,
+so the agent's pay-per-use loop settles natively rather than on a bolted-on payments rail —
+the agent and its data purchases live on the same chain as the settlement.
+
+## Roadmap
+
+**Shipped for the Buildathon (2026-06):**
+- [x] `RwaVault` contract + 8/8 unit tests + WASM build
+- [x] Deployed `RwaVault` to **Casper testnet** with real `distribute()` settlement txs
+- [x] x402 rent-oracle service (HTTP 402, exact scheme)
+- [x] Autonomous agent loop (observe → pay → decide → settle), end-to-end
 - [x] x402 micro-payment settles **on-chain** (payer-signed transfer, facilitator-broadcast)
-- [x] Demo video + DoraHacks submission ([BUIDL #44481](https://dorahacks.io/buidl/44481))
-- [ ] Optional: swap `FACILITATOR_URL` to the production mainnet facilitator (sponsored credentials)
+- [x] Demo video + landing page + DoraHacks submission ([BUIDL #44481](https://dorahacks.io/buidl/44481))
+
+**Path to a real deployment (post-Buildathon):**
+- [ ] Swap `FACILITATOR_URL` to the production Casper **mainnet** x402 facilitator
+      (sponsored credentials; no code change — the interface is identical).
+- [ ] Issue fractional shares as a **CEP-18** token so ownership is transferable, and add a
+      multi-asset vault registry (one agent operating many properties).
+- [ ] Replace the demo rent signal with a **real oracle feed** (off-chain rent/valuation data
+      behind the x402 paywall).
+- [ ] Generalize beyond rent to dividends / coupon / royalty distributions — an "agentic
+      operations layer" for RWAs on Casper.
+
+**Vision:** a general autonomous operations layer for tokenized real-world assets on Casper,
+where every recurring payout event is settled per-event by an agent that pays its own way.
 
 ## License
 
