@@ -14,3 +14,5 @@ secret_key*
 # agent crate build output
 /agent/target
 /agent/Cargo.lock
+showcase/piper_voices/
+showcase/build_hfc/out_*.mp4

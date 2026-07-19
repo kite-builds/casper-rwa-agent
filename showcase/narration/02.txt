@@ -1,0 +1,1 @@
+So the question for this hackathon is simple. Can an autonomous agent run that whole loop, pay, decide, and settle, with no human touching it? That's what I set out to prove on Casper.

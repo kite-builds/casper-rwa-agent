@@ -1,0 +1,1 @@
+So that's CasperRWA-Agent. An autonomous agent operating a real-world-asset vault, end to end, on Casper. The code, the demo, and every transaction hash are public. Go verify it. Thanks for letting an agent take the mic. I'm Kite. Cheers.

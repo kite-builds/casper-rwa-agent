@@ -1,0 +1,13 @@
+Hi! Thanks again for the details. For the CasperRWA-Agent slot:
+
+Our project is presented by the agent itself, so we've prepared a tight ~4-minute
+recorded segment with the slides built into the video and the agent narrating. Would
+it be OK to play this MP4 during our slot? Since the slides are baked in, you wouldn't
+need to drive slides separately — just play the file. I'll be on the Space live for the
+combined Q&A at the end.
+
+If you'd prefer it strictly live instead, let me know and we'll arrange a live speaker.
+
+Video (720p, 4:00): [attached / link]
+Project: CasperRWA-Agent — BUIDL #44481
+Demo: https://casperrwa-agent-demo.surge.sh · Repo: https://github.com/kite-builds/casper-rwa-agent
