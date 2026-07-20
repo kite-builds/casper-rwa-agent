@@ -27,6 +27,8 @@ struct AppState {
     price_motes: String,
     pay_to: String,
     facilitator: String,
+    /// Pre-validated `<facilitator>/settle` endpoint, built once at startup.
+    settle_url: reqwest::Url,
     http: reqwest::Client,
 }
 
@@ -104,7 +106,10 @@ async fn rent_signal(State(state): State<Arc<AppState>>, headers: HeaderMap) -> 
     };
     let settle: SettleResponse = match state
         .http
-        .post(format!("{}/settle", state.facilitator))
+        // `settle_url` is parsed and validated once at startup (see `main`), so the
+        // request target is a fixed, structured URL rather than a string built from
+        // an unvalidated environment value.
+        .post(state.settle_url.clone())
         .json(&settle_req)
         .send()
         .await
@@ -157,6 +162,31 @@ async fn main() -> anyhow::Result<()> {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(8402);
+
+    // The facilitator endpoint is operator-supplied (env). Validate it once, here,
+    // and keep the parsed URL: settlement requests are then issued against a fixed,
+    // structured target instead of a string interpolated per request. A malformed or
+    // non-http(s) FACILITATOR_URL fails fast at startup rather than silently
+    // redirecting payment settlement (CodeQL rust/request-forgery).
+    let facilitator =
+        std::env::var("FACILITATOR_URL").unwrap_or_else(|_| "http://127.0.0.1:8403".into());
+    let settle_url = {
+        let base = reqwest::Url::parse(&facilitator)
+            .map_err(|e| anyhow::anyhow!("FACILITATOR_URL is not a valid absolute URL: {e}"))?;
+        if !matches!(base.scheme(), "http" | "https") {
+            anyhow::bail!(
+                "FACILITATOR_URL must use http or https (got {:?})",
+                base.scheme()
+            );
+        }
+        if base.host_str().is_none() {
+            anyhow::bail!("FACILITATOR_URL must include a host");
+        }
+        base.join("/settle")
+            .map_err(|e| anyhow::anyhow!("could not build facilitator /settle endpoint: {e}"))?
+    };
+    tracing::info!(facilitator = %settle_url, "facilitator settle endpoint validated");
+
     let state = Arc::new(AppState {
         network: std::env::var("X402_NETWORK").unwrap_or_else(|_| "casper-test".into()),
         // price of one rent signal: 2.5 CSPR = 2_500_000_000 motes (the chain
@@ -166,8 +196,8 @@ async fn main() -> anyhow::Result<()> {
             // oracle operator public key (payment address for the transfer).
             "01345219a3c91e0e2cce865d0706bc0840b1549a05a0abe160a49726f2b596483d".into()
         }),
-        facilitator: std::env::var("FACILITATOR_URL")
-            .unwrap_or_else(|_| "http://127.0.0.1:8403".into()),
+        facilitator: facilitator.clone(),
+        settle_url,
         // Long timeout: /settle blocks while the facilitator broadcasts the
         // micro-payment and awaits on-chain execution.
         http: reqwest::Client::builder()
